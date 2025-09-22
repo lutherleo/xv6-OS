@@ -181,6 +181,7 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
+	_hello\
 	_lp2989_tail\
 
 fs.img: mkfs README $(UPROGS)
