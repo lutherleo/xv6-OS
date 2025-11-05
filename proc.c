@@ -88,6 +88,8 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->priority = 3;  // Default priority (middle value)
+
 
   release(&ptable.lock);
 
@@ -322,6 +324,7 @@ wait(void)
 void
 scheduler(void)
 {
+  /*
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
@@ -353,7 +356,45 @@ scheduler(void)
     release(&ptable.lock);
 
   }
+    */
+  struct proc *p;
+  struct proc *highp;  
+  struct cpu *c = mycpu();
+  c->proc = 0;
+  
+  for(;;){
+
+    sti();
+
+    acquire(&ptable.lock);
+    
+    highp = 0;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->state != RUNNABLE)
+        continue;
+
+      if(highp == 0 || p->priority < highp->priority)
+        highp = p;
+    }
+    
+    if(highp != 0){
+      p = highp;
+      
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
+
+      c->proc = 0;
+    }
+    
+    release(&ptable.lock);
+  }
 }
+
+
 
 // Enter scheduler.  Must hold only ptable.lock
 // and have changed proc->state. Saves and restores
@@ -531,4 +572,33 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+
+// Set process priority
+// Returns old priority on success, -1 on error
+int
+nice(int pid, int value)
+{
+  struct proc *p;
+  int oldpri;
+
+  // Validate priority range
+  if(value < 1 || value > 5)
+    return -1;
+
+  acquire(&ptable.lock);
+  
+  // Find the process with given pid
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->pid == pid){
+      oldpri = p->priority;
+      p->priority = value;
+      release(&ptable.lock);
+      return oldpri;
+    }
+  }
+  
+  release(&ptable.lock);
+  return -1;  // Process not found
 }
