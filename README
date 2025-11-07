@@ -1,8 +1,8 @@
 # Homework 3: Priority-Based Scheduling in xv6
 
-**Students:** [Your Name], [Partner Name]  
-**NetIDs:** [Your NetID], [Partner NetID]  
-**Date:** [Submission Date]
+**Students:** Love Kush Pranu
+**NetIDs:** lp2989 
+**Date:** 11/7/2025
 
 ---
 
@@ -96,8 +96,3 @@ $ test6          # Priority inheritance solution
 **Priority Inheritance:** Low-priority holder inherits waiter's priority, restored on release
 
 ---
-
-## Authors
-
-[Your Name] - [Your NetID]  
-[Partner Name] - [Partner NetID]
