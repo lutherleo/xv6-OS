@@ -121,6 +121,8 @@ int             wait(void);
 void            wakeup(void*);
 void            yield(void);
 int             nice(int, int);
+int             lock_acquire(int);
+int             lock_release(int);
 
 // swtch.S
 void            swtch(struct context**, struct context*);

@@ -101,3 +101,25 @@ sys_nice(void)
     return -1;
   return nice(pid, value);
 }
+
+int
+sys_lock(void)
+{
+  int lock_id;
+  
+  if(argint(0, &lock_id) < 0)
+    return -1;
+  
+  return lock_acquire(lock_id);
+}
+
+int
+sys_release(void)
+{
+  int lock_id;
+  
+  if(argint(0, &lock_id) < 0)
+    return -1;
+  
+  return lock_release(lock_id);
+}

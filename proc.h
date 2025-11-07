@@ -13,6 +13,12 @@ struct cpu {
 extern struct cpu cpus[NCPU];
 extern int ncpu;
 
+#define NLOCK 8
+struct lock_info {
+  int locked;                  // 0 = free, 1 = locked
+  int holder_pid;              // PID of process holding lock
+};
+extern struct lock_info locks[NLOCK];
 //PAGEBREAK: 17
 // Saved registers for kernel context switches.
 // Don't need to save all the segment registers (%cs, etc),
@@ -50,6 +56,8 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   int priority;                // Process priority (1=highest, 5=lowest)
+  int original_priority;       // Original priority before inheritance
+  int lock_id;                 // Lock ID held by this process (-1 if none)
 };
 
 // Process memory is laid out contiguously, low addresses first:

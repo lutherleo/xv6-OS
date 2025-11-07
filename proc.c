@@ -7,6 +7,8 @@
 #include "proc.h"
 #include "spinlock.h"
 
+struct lock_info locks[NLOCK];
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -23,7 +25,14 @@ static void wakeup1(void *chan);
 void
 pinit(void)
 {
+  int i;
   initlock(&ptable.lock, "ptable");
+
+  // Initialize all locks as free
+  for(i = 0; i < NLOCK; i++){
+  locks[i].locked = 0;
+  locks[i].holder_pid = -1;
+  }
 }
 
 // Must be called with interrupts disabled
@@ -89,6 +98,8 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
   p->priority = 3;  // Default priority (middle value)
+  p->original_priority = 3;    // Store original
+  p->lock_id = -1;             // Not holding any lock
 
 
   release(&ptable.lock);
@@ -593,7 +604,11 @@ nice(int pid, int value)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid == pid){
       oldpri = p->priority;
+
       p->priority = value;
+      p->original_priority = value;
+      
+      
       release(&ptable.lock);
       return oldpri;
     }
@@ -601,4 +616,94 @@ nice(int pid, int value)
   
   release(&ptable.lock);
   return -1;  // Process not found
+}
+
+
+// Acquire a lock with priority inheritance
+int
+lock_acquire(int lock_id)
+{
+  struct proc *curproc = myproc();
+  struct proc *p;
+  
+  // Validate lock ID
+  if(lock_id < 0 || lock_id >= NLOCK)
+    return -1;
+  
+  acquire(&ptable.lock);
+  
+  // Check if already holding this lock
+  if(curproc->lock_id == lock_id){
+    release(&ptable.lock);
+    return 0;
+  }
+  
+  // Check if already holding a different lock (not allowed)
+  if(curproc->lock_id != -1){
+    release(&ptable.lock);
+    return -1;
+  }
+  
+  // Wait for lock to be free
+  while(locks[lock_id].locked == 1){
+    // Priority inheritance
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->pid == locks[lock_id].holder_pid && p->state != UNUSED){
+        // Donate priority if ours is higher (lower number)
+        if(curproc->priority < p->priority){
+          p->priority = curproc->priority;
+        }
+        break;
+      }
+    }
+    
+    // Sleep - atomically releases and reacquires ptable.lock
+    sleep(&locks[lock_id], &ptable.lock);
+  }
+  
+  // Acquire the lock
+  locks[lock_id].locked = 1;
+  locks[lock_id].holder_pid = curproc->pid;
+  curproc->lock_id = lock_id;
+  
+  release(&ptable.lock);
+  return 0;
+}
+
+// Release a lock and restore priority
+int
+lock_release(int lock_id)
+{
+  struct proc *curproc = myproc();
+  
+  // Validate lock ID
+  if(lock_id < 0 || lock_id >= NLOCK)
+    return -1;
+  
+  acquire(&ptable.lock);
+  
+  // Verify this process holds the lock
+  if(locks[lock_id].holder_pid != curproc->pid){
+    release(&ptable.lock);
+    return -1;
+  }
+  
+  if(curproc->lock_id != lock_id){
+    release(&ptable.lock);
+    return -1;
+  }
+  
+  // Release the lock
+  locks[lock_id].locked = 0;
+  locks[lock_id].holder_pid = -1;
+  curproc->lock_id = -1;
+  
+  // Restore original priority
+  curproc->priority = curproc->original_priority;
+  
+  // Wake up any waiting processes
+  wakeup(&locks[lock_id]);
+  
+  release(&ptable.lock);
+  return 0;
 }
