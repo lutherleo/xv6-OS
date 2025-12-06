@@ -1,0 +1,7 @@
+dog
+elephant
+fox
+giraffe
+horse
+iguana
+jaguar
