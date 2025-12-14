@@ -1,6 +1,7 @@
 #include "types.h"
 #include "user.h"
 #include "uthreads.h"
+#include "async_io.h"
 
 struct thread threads[MAX_THREADS];
 struct thread *current_thread = 0;

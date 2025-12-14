@@ -144,7 +144,7 @@ vectors.S: vectors.pl
 	./vectors.pl > vectors.S
 
 ULIB = ulib.o usys.o printf.o umalloc.o
-UTHREAD_LIB = user_threading_library_core/src/uthreads.o user_threading_library_core/src/uthreads_swtch.o
+UTHREAD_LIB = user_threading_library_core/src/uthreads.o user_threading_library_core/src/uthreads_swtch.o user_threading_library_core/src/async_io.o
 
 _%: %.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
@@ -174,11 +174,9 @@ mkfs: mkfs.c fs.h
 UPROGS=\
 	_cat\
 	_echo\
-	_forktest\
 	_grep\
 	_init\
 	_kill\
-	_ln\
 	_ls\
 	_mkdir\
 	_rm\
@@ -187,16 +185,12 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
-	_tail\
-	_hello\
-	_nice\
-	_test1\
-	_test2\
-	_test3\
-	_test4\
-	_test5\
-	_test6\
 	_t_basic_thread_test\
+	_t_mutex_test\
+	_t_producer_consumer_sem\
+	_t_pro_cons_chan\
+	_t_reader_writer\
+	_t_prod_con_file\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
