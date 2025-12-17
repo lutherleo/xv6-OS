@@ -21,10 +21,11 @@ void* increment_with_mutex(void *arg) {
 void* increment_without_mutex(void *arg) {
     int i;
     for (i = 0; i < INCREMENTS_PER_THREAD; i++) {
-        shared_counter++;
-        if (i % 100 == 0) {
-            thread_yield();
-        }
+        // Simulating a race condition in cooperative threading:
+        // We yield BETWEEN read and write to allow interleaving
+        int temp = shared_counter;   // READ
+        thread_yield();               // Other threads run and modify counter
+        shared_counter = temp + 1;    // WRITE (now stale!)
     }
     return 0;
 }
